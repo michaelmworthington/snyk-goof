@@ -1,0 +1,26 @@
+on:
+  pull_request: {}
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/snyk-code.yml
+  schedule:
+  - cron: '0 0 * * 0'
+name: SnykCode
+jobs:
+  snykcode:
+    name: Scan
+    runs-on: ubuntu-20.04
+    # Skip any PR created by dependabot to avoid permission issues
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+    - uses: actions/checkout@v3
+    - uses: snyk/actions/setup@master
+    - name: Snyk Code
+      run: snyk code test --sarif --json-file-output=./snyk.sarif
+    - name: Upload SARIF file for GitHub Advanced Security Dashboard
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: snyk.sarif
+      if: always()

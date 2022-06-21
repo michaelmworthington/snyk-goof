@@ -1,0 +1,38 @@
+on:
+  pull_request: {}
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/semgrep.yml
+  schedule:
+  - cron: '0 0 * * 0'
+name: Semgrep
+jobs:
+  semgrep:
+    name: Scan
+    runs-on: ubuntu-20.04
+    container:
+      image: returntocorp/semgrep
+    # Skip any PR created by dependabot to avoid permission issues
+    if: (github.actor != 'dependabot[bot]')
+    steps:
+    - uses: actions/checkout@v3
+
+    # Select rules for your scan with one of these two options:
+    #
+    # Option 1: Scan with rules set in Semgrep App's rule board.
+    # Make a token at semgrep.dev/orgs/-/settings/tokens, and then
+    # save it in your GitHub Secrets.
+    - run: semgrep ci --sarif --output=semgrep.sarif --config=auto
+
+    # Option 2: Set hard-coded rulesets, viewable in logs.
+    # - run: semgrep scan --sarif --output=semgrep.sarif
+    #   env:
+    #     SEMGREP_RULES: p/default # See more at semgrep.dev/explore.
+
+    - name: Upload SARIF file for GitHub Advanced Security Dashboard
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: semgrep.sarif
+      if: always()
